@@ -29,9 +29,11 @@ class ProcessImportJob implements ShouldQueue
 
     /** @param array<string, mixed> $payload */
     public function __construct(
-        public readonly int $importId,
+        public readonly int   $importId,
         public readonly array $payload,
-    ) {}
+    )
+    {
+    }
 
     public function handle(): void
     {
@@ -45,9 +47,7 @@ class ProcessImportJob implements ShouldQueue
 
         try {
             $offers = collect($this->payload['offers'] ?? [])
-                ->map(fn (array $raw): array => $import->supplier->code === 'supplier-b'
-                    ? $this->mapSupplierB($raw)
-                    : $this->mapSupplierA($raw));
+                ->map(fn(array $raw): array => $this->mapOffer($raw));
 
             $processed = 0;
 
@@ -72,38 +72,20 @@ class ProcessImportJob implements ShouldQueue
     }
 
     /** @param array<string, mixed> $raw */
-    private function mapSupplierA(array $raw): array
+    private function mapOffer(array $raw): array
     {
         return [
-            'external_id' => (string) $raw['external_id'],
-            'property_code' => (string) $raw['property']['code'],
-            'property_name' => (string) $raw['property']['name'],
-            'city' => (string) $raw['property']['city'],
-            'check_in' => (string) $raw['check_in'],
-            'check_out' => (string) $raw['check_out'],
-            'max_guests' => (int) $raw['max_guests'],
-            'price' => (int) $raw['price'],
-            'currency' => strtoupper((string) $raw['currency']),
-            'available_units' => (int) $raw['available_units'],
-            'expires_at' => (string) $raw['expires_at'],
-        ];
-    }
-
-    /** @param array<string, mixed> $raw */
-    private function mapSupplierB(array $raw): array
-    {
-        return [
-            'external_id' => (string) $raw['offer_id'],
-            'property_code' => (string) $raw['property_code'],
-            'property_name' => (string) $raw['property_name'],
-            'city' => (string) $raw['city'],
-            'check_in' => (string) $raw['date_from'],
-            'check_out' => (string) $raw['date_to'],
-            'max_guests' => (int) $raw['guests'],
-            'price' => (int) round(((float) $raw['amount']) * 100),
-            'currency' => strtoupper((string) $raw['currency']),
-            'available_units' => (int) $raw['units_left'],
-            'expires_at' => (string) $raw['valid_until'],
+            'external_id' => (string)$raw['external_id'],
+            'property_code' => (string)$raw['property']['code'],
+            'property_name' => (string)$raw['property']['name'],
+            'city' => (string)$raw['property']['city'],
+            'check_in' => (string)$raw['check_in'],
+            'check_out' => (string)$raw['check_out'],
+            'max_guests' => (int)$raw['max_guests'],
+            'price' => (int)$raw['price'],
+            'currency' => strtoupper((string)$raw['currency']),
+            'available_units' => (int)$raw['available_units'],
+            'expires_at' => (string)$raw['expires_at'],
         ];
     }
 

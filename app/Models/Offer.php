@@ -64,9 +64,4 @@ class Offer extends Model
     {
         return $this->hasMany(Reservation::class);
     }
-
-    protected function priceDecimal(): Attribute
-    {
-        return Attribute::get(fn (): float => $this->price / 100);
-    }
 }

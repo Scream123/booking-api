@@ -24,10 +24,11 @@ class Property extends Model
     public function scopeSearchAvailable(
         Builder $query,
         ?string $city,
-        string $checkIn,
-        string $checkOut,
-        int $guests,
-    ): Builder {
+        string  $checkIn,
+        string  $checkOut,
+        int     $guests,
+    ): Builder
+    {
         $ranked = DB::table('offers')
             ->join('properties', 'properties.id', '=', 'offers.property_id')
             ->select([
@@ -41,12 +42,12 @@ class Property extends Model
             ])
             ->selectRaw('ROW_NUMBER() 
             OVER (PARTITION BY offers.property_id ORDER BY offers.price ASC) as price_rank')
-            ->where('offers.check_in', $checkIn)
-            ->where('offers.check_out', $checkOut)
+            ->where('offers.check_in', '<=', $checkIn)
+            ->where('offers.check_out', '>=', $checkOut)
             ->where('offers.max_guests', '>=', $guests)
             ->where('offers.available_units', '>', 0)
             ->where('offers.expires_at', '>', now()->toDateTimeString())
-            ->when($city, fn ($q) => $q->where('properties.city', $city));
+            ->when($city, fn($q) => $q->where('properties.city', $city));
 
         $bestOffers = DB::query()->fromSub($ranked, 'ranked')->where('price_rank', 1);
 
