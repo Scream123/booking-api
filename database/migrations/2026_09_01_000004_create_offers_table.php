@@ -24,6 +24,7 @@ return new class extends Migration
             $table->char('currency', 3);
             $table->unsignedInteger('available_units');
             $table->timestamp('expires_at');
+            $table->timestamp('last_sent_at')->nullable();
 
             $table->timestamps();
 

@@ -18,6 +18,7 @@ return new class extends Migration
             $table->string('customer_email');
             $table->timestamps();
 
+            $table->index('offer_id');
             $table->unique('client_reference');
         });
     }

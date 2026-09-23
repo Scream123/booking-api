@@ -7,6 +7,7 @@ namespace App\Jobs;
 use App\Models\Import;
 use App\Models\Offer;
 use App\Models\Property;
+use App\Models\Reservation;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -93,10 +94,31 @@ class ProcessImportJob implements ShouldQueue
     {
         return DB::transaction(function () use ($import, $chunk): int {
             foreach ($chunk as $offer) {
-                $property = Property::query()->firstOrCreate(
+                $property = Property::query()->updateOrCreate(
                     ['code' => $offer['property_code']],
-                    ['name' => $offer['property_name'], 'city' => $offer['city']],
+                    [
+                        'name' => $offer['property_name'],
+                        'city' => $offer['city'],
+                    ],
                 );
+
+                $existing = Offer::query()
+                    ->where('supplier_id', $import->supplier_id)
+                    ->where('external_id', $offer['external_id'])
+                    ->lockForUpdate()
+                    ->first();
+
+                if (
+                    $existing !== null
+                    && $existing->last_sent_at !== null
+                    && $existing->last_sent_at->gt($import->sent_at)
+                ) {
+                    continue;
+                }
+
+                $reservedUnits = $existing
+                    ? Reservation::query()->where('offer_id', $existing->id)->count()
+                    : 0;
 
                 Offer::query()->updateOrCreate(
                     [
@@ -111,8 +133,9 @@ class ProcessImportJob implements ShouldQueue
                         'max_guests' => $offer['max_guests'],
                         'price' => $offer['price'],
                         'currency' => $offer['currency'],
-                        'available_units' => $offer['available_units'],
+                        'available_units' => max(0, $offer['available_units'] - $reservedUnits),
                         'expires_at' => $offer['expires_at'],
+                        'last_sent_at' => $import->sent_at,
                     ],
                 );
             }
