@@ -23,7 +23,6 @@ class ReservationTest extends TestCase
 
     public function test_it_creates_a_reservation_and_decrements_available_units(): void
     {
-        $this->withoutExceptionHandling();
         $offer = Offer::factory()->create(['available_units' => 2]);
 
         $response = $this->postJson("/api/offers/{$offer->id}/reservations", $this->payload());
@@ -36,6 +35,19 @@ class ReservationTest extends TestCase
     public function test_it_refuses_to_reserve_an_offer_with_no_units_left(): void
     {
         $offer = Offer::factory()->create(['available_units' => 0]);
+
+        $response = $this->postJson("/api/offers/{$offer->id}/reservations", $this->payload());
+
+        $response->assertStatus(422);
+        $this->assertDatabaseCount('reservations', 0);
+    }
+
+    public function test_it_refuses_to_reserve_an_expired_offer(): void
+    {
+        $offer = Offer::factory()->create([
+            'available_units' => 2,
+            'expires_at' => now()->subDay(),
+        ]);
 
         $response = $this->postJson("/api/offers/{$offer->id}/reservations", $this->payload());
 
