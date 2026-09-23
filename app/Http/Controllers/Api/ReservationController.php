@@ -28,6 +28,12 @@ class ReservationController extends Controller
                 ]);
             }
 
+            if ($locked->expires_at->isPast()) {
+                throw ValidationException::withMessages([
+                    'offer' => 'This offer has expired.',
+                ]);
+            }
+
             $locked->decrement('available_units');
 
             return Reservation::query()->create([

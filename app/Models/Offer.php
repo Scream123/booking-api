@@ -27,6 +27,7 @@ class Offer extends Model
         'currency',
         'available_units',
         'expires_at',
+        'last_sent_at',
     ];
 
     protected function casts(): array
@@ -35,6 +36,7 @@ class Offer extends Model
             'check_in' => 'date',
             'check_out' => 'date',
             'expires_at' => 'datetime',
+            'last_sent_at' => 'datetime',
             'price' => 'integer',
             'available_units' => 'integer',
             'max_guests' => 'integer',

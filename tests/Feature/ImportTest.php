@@ -79,7 +79,6 @@ class ImportTest extends TestCase
         $this->assertSame(2, $offer->available_units);
     }
 
-
     public function test_reimporting_an_existing_offer_updates_it_in_place(): void
     {
         Supplier::factory()->create(['code' => 'supplier-a']);
@@ -94,5 +93,41 @@ class ImportTest extends TestCase
         $offer = Offer::query()->where('external_id', 'offer-a-10001')->firstOrFail();
         $this->assertSame(65000, $offer->price);
         $this->assertSame(1, $offer->available_units);
+    }
+
+    public function test_invalid_offer_payload_returns_422_and_creates_nothing(): void
+    {
+        Supplier::factory()->create(['code' => 'supplier-a']);
+
+        $payload = $this->payload();
+        unset($payload['offers'][0]['price']);
+
+        $response = $this->postJson('/api/imports', $payload);
+
+        $response->assertStatus(422);
+        $response->assertJsonValidationErrors(['offers.0.price']);
+        $this->assertDatabaseCount('imports', 0);
+    }
+
+    public function test_reimport_does_not_undo_an_existing_reservation(): void
+    {
+        Supplier::factory()->create(['code' => 'supplier-a']);
+
+        $payload = $this->payload();
+        $payload['offers'][0]['expires_at'] = '2026-10-20T23:59:59Z';
+
+        $this->postJson('/api/imports', $payload);
+
+        $offer = Offer::query()->where('external_id', 'offer-a-10001')->firstOrFail();
+        $this->postJson("/api/offers/{$offer->id}/reservations", [
+            'client_reference' => 'order-1',
+            'customer_name' => 'John Smith',
+            'customer_email' => 'john@example.com',
+        ])->assertStatus(201);
+
+        $reimport = $this->payload(['external_import_id' => 'import-2026-09-02-001']);
+        $this->postJson('/api/imports', $reimport);
+
+        $this->assertSame(1, $offer->fresh()->available_units);
     }
 }

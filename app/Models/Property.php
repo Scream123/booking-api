@@ -40,13 +40,17 @@ class Property extends Model
                 'offers.available_units',
                 'offers.expires_at',
             ])
-            ->selectRaw('ROW_NUMBER() 
-            OVER (PARTITION BY offers.property_id ORDER BY offers.price ASC) as price_rank')
-            ->where('offers.check_in', '<=', $checkIn)
-            ->where('offers.check_out', '>=', $checkOut)
+            ->selectRaw(
+                'ROW_NUMBER() OVER (
+                                PARTITION BY offers.property_id
+                                ORDER BY offers.price ASC, offers.id ASC
+                            ) as price_rank'
+            )
+            ->whereDate('offers.check_in', $checkIn)
+            ->whereDate('offers.check_out', $checkOut)
             ->where('offers.max_guests', '>=', $guests)
             ->where('offers.available_units', '>', 0)
-            ->where('offers.expires_at', '>', now()->toDateTimeString())
+            ->where('offers.expires_at', '>', now())
             ->when($city, fn($q) => $q->where('properties.city', $city));
 
         $bestOffers = DB::query()->fromSub($ranked, 'ranked')->where('price_rank', 1);
